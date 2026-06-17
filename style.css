@@ -1,0 +1,180 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #f5f0e8;
+  color: #2c1f0e;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 20px 12px;
+}
+
+#app { width: 100%; max-width: 620px; }
+
+header { text-align: center; margin-bottom: 20px; }
+
+h1 {
+  font-size: 1.3rem;
+  letter-spacing: 3px;
+  color: #7a4f1a;
+  margin-bottom: 12px;
+}
+
+.controls {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+button {
+  background: #e8dcc8;
+  border: 1px solid #b89060;
+  color: #3a2010;
+  padding: 7px 18px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-family: inherit;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+button:hover { background: #d8c8a8; border-color: #8a6030; }
+
+.hint { font-size: 0.72rem; color: #9a8068; }
+
+#grid-container { display: flex; justify-content: center; width: 100%; }
+
+#grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(5, 1fr);
+  gap: clamp(3px, 1.2vw, 6px);
+  width: 100%;
+  max-width: 500px;
+}
+
+/* ===== シャッフルアニメーション ===== */
+@keyframes shuffle-shake {
+  0%   { transform: translate(0, 0) rotate(0deg); }
+  25%  { transform: translate(-3px, -2px) rotate(-3deg); }
+  50%  { transform: translate(3px, 2px) rotate(3deg); }
+  75%  { transform: translate(-2px, 1px) rotate(-1.5deg); }
+  100% { transform: translate(0, 0) rotate(0deg); }
+}
+
+#grid.shuffling .card {
+  animation: shuffle-shake 0.5s ease-in-out infinite;
+  animation-delay: calc(var(--card-idx, 0) * 40ms);
+  pointer-events: none;
+}
+
+/* ===== カード ===== */
+.card {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  position: relative;
+  cursor: pointer;
+  border: 1px solid #c8b090;
+  transition: box-shadow 0.15s;
+  user-select: none;
+}
+
+.card:hover { box-shadow: 0 0 10px rgba(160, 100, 40, 0.3); z-index: 1; }
+
+.card.has-match { outline: 2px solid #c8900a; z-index: 1; }
+
+/* 三角形の背景群 — ここだけ回転する */
+.card-bg {
+  position: absolute;
+  inset: 0;
+  transition: transform 0.2s ease;
+}
+
+.card[data-rotation="1"] .card-bg { transform: rotate(90deg); }
+.card[data-rotation="2"] .card-bg { transform: rotate(180deg); }
+.card[data-rotation="3"] .card-bg { transform: rotate(270deg); }
+
+.tri-bg {
+  position: absolute;
+  inset: 0;
+  transition: filter 0.2s;
+}
+
+.tri-bg.top    { clip-path: polygon(0 0, 100% 0, 50% 50%);         background: #e8d8b8; }
+.tri-bg.right  { clip-path: polygon(100% 0, 100% 100%, 50% 50%);   background: #d8e4d0; }
+.tri-bg.bottom { clip-path: polygon(0 100%, 100% 100%, 50% 50%);   background: #ddd0e8; }
+.tri-bg.left   { clip-path: polygon(0 0, 0 100%, 50% 50%);         background: #e8d8cc; }
+
+/* ペア一致ハイライト */
+.tri-bg.matched {
+  background: #c8900a !important;
+  filter: drop-shadow(0 0 4px #e8b040);
+}
+
+/* 数字＋矢印ラベル — 常に正立 */
+.tri-label {
+  position: absolute;
+  font-size: 10px;
+  line-height: 1.3;
+  color: #3a2010;
+  pointer-events: none;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* 一致確定 — オレンジ背景上で読める白文字 */
+.tri-label.matched-label {
+  color: #fff8ee;
+  font-weight: bold;
+}
+
+/* 隣のカードを回転させれば一致できる可能性あり */
+.tri-label.potential {
+  color: #b04800;
+  font-weight: bold;
+  text-shadow: 0 0 3px rgba(200, 120, 0, 0.4);
+}
+
+.tri-label.t { top: 3px;    left: 50%;  transform: translateX(-50%); }
+.tri-label.r { right: 1px;  top: 50%;   transform: translateY(-50%); text-align: right; }
+.tri-label.b { bottom: 3px; left: 50%;  transform: translateX(-50%); }
+.tri-label.l { left: 1px;   top: 50%;   transform: translateY(-50%); text-align: left; }
+
+/* ===== 結果 ===== */
+#result {
+  margin-top: 24px;
+  background: #eee8d8;
+  border: 1px solid #c8a870;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+#result h2 {
+  text-align: center;
+  color: #7a4f1a;
+  font-size: 1.1rem;
+  letter-spacing: 2px;
+  margin-bottom: 16px;
+}
+
+#result-content {
+  display: block;
+}
+
+.result-item {
+  background: none;
+  border: none;
+  padding: 8px 0;
+  border-bottom: 1px solid #ddd0b8;
+}
+
+.result-item:last-child { border-bottom: none; }
+
+.sym-id   { font-size: 0.7rem; color: #9a7850; }
+.sym-name { font-size: 0.9rem; color: #2c1f0e; font-weight: bold; }
+.sym-dir  { font-size: 0.78rem; color: #7a5830; margin-left: 6px; }
+.sym-meaning { font-size: 0.82rem; color: #4a3a25; margin-top: 4px; line-height: 1.5; }
+
+#btn-close-result { display: block; margin: 16px auto 0; }
