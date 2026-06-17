@@ -147,9 +147,9 @@ function isCurrentlyMatched(r, c, effSide) {
   const [dr, dc] = DELTA[effSide];
   const r2 = r + dr, c2 = c + dc;
   if (r2 < 0 || r2 >= 5 || c2 < 0 || c2 >= 5) return false;
-  const [symA] = getEffectiveSide(r, c, effSide);
-  const [symB] = getEffectiveSide(r2, c2, OPPOSITE[effSide]);
-  return symA === symB;
+  const [symA, arrA] = getEffectiveSide(r, c, effSide);
+  const [symB, arrB] = getEffectiveSide(r2, c2, OPPOSITE[effSide]);
+  return symA === symB && arrA === arrB;
 }
 
 // 隣のカードを何らかの回転にしたとき、OPPOSITE辺で (symId, symArrow) と一致できるか
@@ -206,8 +206,15 @@ function buildMatchedSet(pairs) {
 
 function buildCardEl(r, c, triSet, cardSet) {
   const { rotation } = grid[r][c];
+
+  // 潜在一致が1辺でもあるか判定（フェード制御用）
+  const anyMatch = DIRS.some(side => {
+    const [sId, sArr] = getEffectiveSide(r, c, side);
+    return isCurrentlyMatched(r, c, side) || isPotentialMatch(r, c, side, sId, sArr);
+  });
+
   const card = document.createElement('div');
-  card.className = 'card' + (cardSet.has(`${r},${c}`) ? ' has-match' : '');
+  card.className = 'card' + (anyMatch ? ' has-match' : ' no-potential');
   card.dataset.row = r;
   card.dataset.col = c;
   card.dataset.rotation = rotation;
@@ -224,15 +231,12 @@ function buildCardEl(r, c, triSet, cardSet) {
   });
   card.appendChild(bg);
 
-  // ラベル（常に正立、実効データ）
+  // ラベル（確定/潜在どちらもゴールドに統合）
   DIRS.forEach(effSide => {
     const [symId, arrow] = getEffectiveSide(r, c, effSide);
-    const matched   = isCurrentlyMatched(r, c, effSide);
-    const potential = !matched && isPotentialMatch(r, c, effSide, symId, arrow);
+    const matched = isCurrentlyMatched(r, c, effSide) || isPotentialMatch(r, c, effSide, symId, arrow);
     const lbl = document.createElement('div');
-    lbl.className = 'tri-label ' + LABEL_POS[effSide]
-      + (matched   ? ' matched-label'  : '')
-      + (potential ? ' potential'      : '');
+    lbl.className = 'tri-label ' + LABEL_POS[effSide] + (matched ? ' matched-label' : '');
     lbl.textContent = symId + arrow;
     card.appendChild(lbl);
   });
@@ -243,11 +247,22 @@ function buildCardEl(r, c, triSet, cardSet) {
     const after = getMatchingPairs();
 
     const key = p => `${p.symId}:${p.arrow}`;
-    const beforeKeys = new Set(before.map(key));
-    const afterKeys  = new Set(after.map(key));
-    const broken  = before.filter(p => !afterKeys.has(key(p)));
-    const created = after.filter(p => !beforeKeys.has(key(p)));
-    if (broken.length > 0 && created.length > 0) {
+    const countMap = arr => arr.reduce((m, p) => {
+      const k = key(p); m.set(k, (m.get(k) || 0) + 1); return m;
+    }, new Map());
+    const beforeMap = countMap(before);
+    const afterMap  = countMap(after);
+
+    const broken = [];
+    beforeMap.forEach((cnt, k) => {
+      if (cnt > (afterMap.get(k) || 0)) broken.push(before.find(p => key(p) === k));
+    });
+    const created = [];
+    afterMap.forEach((cnt, k) => {
+      if (cnt > (beforeMap.get(k) || 0)) created.push(after.find(p => key(p) === k));
+    });
+
+    if (broken.length > 0) {
       brokenHistory.push({ broken, created });
     }
 

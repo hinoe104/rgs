@@ -130,11 +130,9 @@ button:hover { background: #d8c8a8; border-color: #8a6030; }
   font-weight: bold;
 }
 
-/* 隣のカードを回転させれば一致できる可能性あり */
-.tri-label.potential {
-  color: #b04800;
-  font-weight: bold;
-  text-shadow: 0 0 3px rgba(200, 120, 0, 0.4);
+/* 潜在一致ゼロのカードをフェード */
+.card.no-potential {
+  opacity: 0.35;
 }
 
 .tri-label.t { top: 3px;    left: 50%;  transform: translateX(-50%); }
